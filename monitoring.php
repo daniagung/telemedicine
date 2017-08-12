@@ -63,10 +63,10 @@ include("inc/nav.php");
 			<div class="row">
 
 				<!-- NEW WIDGET START -->
-				<article class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+				<article class="col-xs-12 col-sm-6 col-md-12 col-lg-6">
 
 					<!-- Widget ID (each widget will need unique ID)-->
-					<div class="jarviswidget" id="wid-id-2" data-widget-colorbutton="false" data-widget-deletebutton="false" data-widget-editbutton="false" data-widget-sortable="false">
+					<div class="jarviswidget" id="wid-id-0" data-widget-colorbutton="false" data-widget-deletebutton="false" data-widget-editbutton="false" data-widget-sortable="false">
 						<!-- widget options:
 						usage: <div class="jarviswidget" id="wid-id-0" data-widget-editbutton="false">
 
@@ -103,8 +103,7 @@ include("inc/nav.php");
 							<!-- widget content -->
 							<div class="widget-body">
 
-								<canvas id="ecg">
-				</canvas>
+								<div id="graph" style="width: 100%; height: 500px;"></div>
 
 							</div>
 							<!-- end widget content -->
@@ -158,67 +157,8 @@ include("inc/nav.php");
 								<div class="well well-sm">
 					<!-- Timeline Content -->
 					<div class="smart-timeline">
-						<ul class="smart-timeline-list">
-							<li>
-								<div class="smart-timeline-icon bg-color-greenDark">
-									<i class="fa fa-bar-chart-o"></i>
-								</div>
-								<div class="smart-timeline-time">
-									<small>5 hrs ago</small>
-								</div>
-								<div class="smart-timeline-content">
-									<p>
-										<strong class="txt-color-greenDark">Normal Heartbeat</strong>
-									</p>
+						<ul id="mqttnotif" class="smart-timeline-list">
 
-									<br>
-								</div>
-							</li>
-							<li>
-								<div class="smart-timeline-icon bg-color-greenDark">
-									<i class="fa fa-bar-chart-o"></i>
-								</div>
-								<div class="smart-timeline-time">
-									<small>4 hrs ago</small>
-								</div>
-								<div class="smart-timeline-content">
-									<p>
-										<strong class="txt-color-greenDark">Normal Heartbeat</strong>
-									</p>
-
-									<br>
-								</div>
-							</li>
-							<li>
-								<div class="smart-timeline-icon bg-color-greenDark">
-									<i class="fa fa-bar-chart-o"></i>
-								</div>
-								<div class="smart-timeline-time">
-									<small>3 hrs ago</small>
-								</div>
-								<div class="smart-timeline-content">
-									<p>
-										<strong class="txt-color-greenDark">Normal Heartbeat</strong>
-									</p>
-
-									<br>
-								</div>
-							</li>
-							<li>
-								<div class="smart-timeline-icon bg-color-greenDark">
-									<i class="fa fa-bar-chart-o"></i>
-								</div>
-								<div class="smart-timeline-time">
-									<small>2 hrs ago</small>
-								</div>
-								<div class="smart-timeline-content">
-									<p>
-										<strong class="txt-color-greenDark">Normal Heartbeat</strong>
-									</p>
-
-									<br>
-								</div>
-							</li>
 						</ul>
 					</div>
 					<!-- END Timeline Content -->
@@ -283,267 +223,170 @@ include("inc/nav.php");
 
 <!-- Full Calendar -->
 <script src="<?php echo ASSETS_URL; ?>/js/plugin/moment/moment.min.js"></script>
-<script src="<?php echo ASSETS_URL; ?>/js/pahomqtt.js"></script>
-<script src="<?php echo ASSETS_URL; ?>/js/mqtt.js"></script>
 <script src="<?php echo ASSETS_URL; ?>/js/plugin/fullcalendar/jquery.fullcalendar.min.js"></script>
-<script src="http://www.hivemq.com/demos/websocket-client/js/mqttws31.js"></script>
+<script src="<?php echo ASSETS_URL; ?>/js/plotly-latest.min.js"></script>
+<script src="<?php echo ASSETS_URL; ?>/js/mqttws31.js"></script>
+<script type="text/javascript">
+console.log("MQTT Test");
+var client = new Messaging.Client("192.168.43.74", 8883, "myclientid_" + parseInt(Math.random() * 100, 10));
+
+client.onConnectionLost = onConnectionLost;
+client.onMessageArrived = onMessageArrived;
+
+//Connect Options
+var options = {
+	 timeout: 3,
+
+	 //Gets Called if the connection has sucessfully been established
+	 onSuccess: onConnect,
+	 //Gets Called if the connection could not be established
+	 onFailure: function (message) {
+			 //alert("Connection failed: " + message.errorMessage);
+	 }
+};
+
+client.connect(options);
+
+function onConnect() {
+// Once a connection has been made, make a subscription and send a message.
+console.log("onConnect");
+//client.subscribe("<?php echo "rhythm/".$_GET['deviceid']?>");
+client.subscribe("rhythm/r01");
+};
+
+function onConnectionLost(responseObject) {
+if (responseObject.errorCode !== 0)
+	console.log("onConnectionLost:"+responseObject.errorMessage);
+};
+var testing;
+
+var time = new Date();
+
+var data = [{
+	x: [time],
+	y: [0],
+	mode: 'lines',
+	line: {color: '#80CAF6'}
+}]
+console.log(data)
+Plotly.plot('graph', data);
+var cnt = 0;
+window.onresize = function() {
+Plotly.Plots.resize(graph);
+};
+
+var ECGdata = [];
+function onMessageArrived(message) {
+ testing = message.payloadString;
+ testing = testing.split(":");
+ testing = testing[1];
+ data.push(testing);
+ //for (i = 0; i < testing.length; i++)
+//console.log(testing);
+ // if(data.length < 1000){
+ // 	//  data.push(testing);
+ // }
+ // else{
+ //  data = []
+ // }
+console.log(message.payloadString);
+};
+var ECG_idx = 0;
+function getECG(){
+	if (ECG_idx++ >= ECG_data.length - 1) ECG_idx=0;
+		var output = new Array();
+		output[0] = ECG_data[ECG_idx];
+	return output;
+ }
+
+	var time = new Date();
+	var update = {
+		 x:  [[time]],
+		 y: [[i]]
+	}
+	//console.log(data[i]);
+
+	var olderTime = time.setSeconds(time.getSeconds() - 30);
+	var futureTime = time.setSeconds(time.getSeconds() + 30);
+
+	var minuteView = {
+				xaxis: {
+					type: 'date',
+					range: [olderTime,futureTime]
+				}
+			};
+
+Plotly.relayout('graph', minuteView);
+Plotly.extendTraces('graph', update, [0]);
+</script>
 <script>
 	$(document).ready(function() {
-		/*
-		 *
-		 * Photoplethysmograph (Real Time PPG Grapher)
-		 *
-		 *    by: Tso (Peter) Chen
-		 *
-		 *
-		 *
-		 * 0.1 - first version
-		 *
-		 *
-		 * Absolutely free to use, copy, edit, share, etc.
-		 *--------------------------------------------------*/
 
-		  /*
-		   * Helper function to convert a number to the graph coordinate
-		   * ----------------------------------------------------------- */
-		  function convertToGraphCoord(g, num){
-		    return Math.floor((g.height / 2) * -(num * g.scaleFactor) + g.height / 2);
-		  }
+var client1 = new Messaging.Client("192.168.43.74", 8883, "myclientid_" + parseInt(Math.random() * 100, 10));
 
-		  /*
-		   * Constructor for the PlethGraph object
-		   * ----------------------------------------------------------- */
-		  function PlethGraph(cid, datacb){
+ //Gets  called if the websocket/mqtt connection gets disconnected for any reason
+ client1.onConnectionLost = function (responseObject1) {
+     //Depending on your scenario you could implement a reconnect logic here
+     alert("connection lost: " + responseObject1.errorMessage);
+ };
+ var count_notif = 0;
+ //Gets called whenever you receive a message for your subscriptions
+ client1.onMessageArrived = function (message1) {
 
-		    var g             =   this;
-		    g.canvas_id       =   cid;
-		    g.canvas          =   $("#" + cid);
-		    g.context         =   g.canvas[0].getContext("2d");
-		    g.width           =   $("#" + cid).width();
-		    g.height          =   $("#" + cid).height();
-		    g.white_out       =   g.width * 0.01;
-		    g.fade_out        =   g.width * 0.10;
-		    g.fade_opacity    =   0.2;
-		    g.current_x       =   0;
-		    g.current_y       =   0;
-		    g.erase_x         =   null;
-		    g.speed           =   2;
-		    g.linewidth       =   1;
-		    g.scaleFactor     =   1;
-		    g.stop_graph      =   true;
+	   //Do something with the push message you received
+		 var str = "";
 
-		    g.plethStarted    =   false;
-		    g.plethBuffer     =   new Array();
+		 var currentTime = new Date()
+		 var hours = currentTime.getHours()
+		 var minutes = currentTime.getMinutes()
+		 var seconds = currentTime.getSeconds()
+	var miliseconds = currentTime.getMilliseconds();
+		 str += hours + ":" + minutes + ":" + seconds + "." + miliseconds;
+	console.log(str);
 
+	if(count_notif >= 5){
+		$('#mqttnotif li').first().remove();
 
-		    devicePixelRatio = window.devicePixelRatio || 1,
-		    backingStoreRatio = g.context.webkitBackingStorePixelRatio ||
-		                        g.context.mozBackingStorePixelRatio ||
-		                        g.context.msBackingStorePixelRatio ||
-		                        g.context.oBackingStorePixelRatio ||
-		                        g.context.backingStorePixelRatio || 1,
+		if(message1.payloadString == "pvc"){
+			$('#mqttnotif').append('<li><div class="smart-timeline-icon bg-color-red"><i class="fa fa-heart"></i></div><div class="smart-timeline-time"><small>'+str+'</small></div><div class="smart-timeline-content"><p><strong class="txt-color-red">Ventricular Arrhytmia Detected</strong></p><br></div></li>');
+		}else {
+			$('#mqttnotif').append('<li><div class="smart-timeline-icon bg-color-greenDark"><i class="fa fa-heart"></i></div><div class="smart-timeline-time"><small>'+str+'</small></div><div class="smart-timeline-content"><p><strong class="txt-color-greenDark">Normal Heartbeat</strong></p><br></div></li>');
+		}
+	}else{
+		if(message1.payloadString == "pvc"){
+			$('#mqttnotif').append('<li><div class="smart-timeline-icon bg-color-red"><i class="fa fa-heart"></i></div><div class="smart-timeline-time"><small>'+str+'</small></div><div class="smart-timeline-content"><p><strong class="txt-color-red">Ventricular Arrhytmia Detected</strong></p><br></div></li>');
+		}else {
+			$('#mqttnotif').append('<li><div class="smart-timeline-icon bg-color-greenDark"><i class="fa fa-heart"></i></div><div class="smart-timeline-time"><small>'+str+'</small></div><div class="smart-timeline-content"><p><strong class="txt-color-greenDark">Normal Heartbeat</strong></p><br></div></li>');
+		}
+	}
 
-		    ratio = devicePixelRatio / backingStoreRatio;
+	count_notif += 1;
+	console.log(count_notif);
+};
 
+ //Connect Options
+ var options1 = {
+     timeout: 3,
+     //Gets Called if the connection has sucessfully been established
+     onSuccess: onConnect1,
+     //Gets Called if the connection could not be established
+     onFailure: function (message1) {
+        // alert("Connection failed: " + message1.errorMessage);
+     }
+ };
 
-		    var oldWidth = g.width;
-		    var oldHeight = g.canvas[0].height;
+client1.connect(options1);
 
-		    g.canvas[0].width = oldWidth * ratio;
-		    g.canvas[0].height = oldHeight * ratio;
-
-		    g.canvas[0].style.width = '100%';
-		    g.canvas[0].style.height = oldHeight + 'px';
-
-		    // now scale the context to counter
-		    // the fact that we've manually scaled
-		    // our canvas element
-		    g.context.scale(ratio, ratio);
-
-
-		    /*
-		     * The call to fill the data buffer using
-		     * the data callback
-		     * ---------------------------------------- */
-		    g.fillData = function() {
-		      g.plethBuffer = datacb();
-		      };
-
-		    /*
-		     * The call to check whether graphing is on
-		     * ---------------------------------------- */
-		    g.isActive = function() {
-		      return !g.stop_graph;
-		    };
-
-		    /*
-		     * The call to stop the graphing
-		     * ---------------------------------------- */
-		    g.stop = function() {
-		      g.stop_graph = true;
-		    };
-
-
-		    /*
-		     * The call to wrap start the graphing
-		     * ---------------------------------------- */
-		    g.start = function() {
-		      g.stop_graph = false;
-		      g.animate();
-		    };
-
-
-		    /*
-		     * The call to start the graphing
-		     * ---------------------------------------- */
-		    g.animate = function() {
-		      reqAnimFrame =   window.requestAnimationFrame       ||
-		                       window.mozRequestAnimationFrame    ||
-		                       window.webkitRequestAnimationFrame ||
-		                       window.msRequestAnimationFrame     ||
-		                       window.oRequestAnimationFrame;
-
-		      // Recursive call to do animation frames
-		      if (!g.stop_graph) reqAnimFrame(g.animate);
-
-		      // We need to fill in data into the buffer so we know what to draw
-		      g.fillData();
-
-		      // Draw the frame (with the supplied data buffer)
-		      g.draw();
-		    };
-
-
-		    g.draw = function() {
-		      // Circle back the draw point back to zero when needed (ring drawing)
-		      g.current_x = (g.current_x > g.width) ? 0 : g.current_x;
-
-		      // "White out" a region before the draw point
-		      for( i = 0; i < g.white_out ; i++){
-		        g.erase_x = (g.current_x + i) % g.width;
-		        g.context.clearRect(g.erase_x, 0, 1, g.height);
-		      }
-
-		      // "Fade out" a region before the white out region
-		      for( i = g.white_out ; i < g.fade_out ; i++ ){
-		        g.erase_x = (g.current_x + i) % g.width;
-		        g.context.fillStyle="rgba(255, 255, 255, " + g.fade_opacity.toString() + ")";
-		        g.context.fillRect(g.erase_x, 0, 1, g.height);
-		      }
-
-		      // If this is first time, draw the first y point depending on the buffer
-		      if (!g.started) {
-		        g.current_y = convertToGraphCoord(g, g.plethBuffer[0]);
-		        g.started = true;
-		      }
-
-		      // Start the drawing
-		      g.context.beginPath();
-
-		      // We first move to the current x and y position (last point)
-		      g.context.moveTo(g.current_x, g.current_y);
-
-		      for (i = 0; i < g.plethBuffer.length; i++) {
-		        // Put the new y point in from the buffer
-		        g.current_y = convertToGraphCoord(g, g.plethBuffer[i]);
-
-		        // Draw the line to the new x and y point
-		        g.context.lineTo(g.current_x += g.speed, g.current_y);
-
-		        // Set the
-		        g.context.lineWidth   = g.linewidth;
-		        g.context.lineJoin    = "round";
-
-		        // Create stroke
-		        g.context.stroke();
-		      }
-
-		      // Stop the drawing
-		      g.context.closePath();
-		    };
-		  }
-
-
-
-		 // --------------------------- Noise Demo
-		 console.log("MQTT Test");
-		 var client = new Messaging.Client("broker.mqttdashboard.com", 8000, "myclientid_" + parseInt(Math.random() * 100, 10));
-
-	 	client.onConnectionLost = onConnectionLost;
-	 	client.onMessageArrived = onMessageArrived;
-
-	 	//Connect Options
-	 	var options = {
-	 	    timeout: 3,
-
-	 	    //Gets Called if the connection has sucessfully been established
-	 	    onSuccess: onConnect,
-	 	    //Gets Called if the connection could not be established
-	 	    onFailure: function (message) {
-	 	        alert("Connection failed: " + message.errorMessage);
-	 	    }
-	 	};
-	 	client.connect(options);
-	 	function onConnect() {
+	 	function onConnect1() {
 	 	 // Once a connection has been made, make a subscription and send a message.
-	 	 console.log("onConnect");
-	 	 client.subscribe("RhythmR01");
+	 	 console.log("onConnectnotif");
+	 	 client1.subscribe("<?php echo "rhythm/".$_GET['deviceid']."/n"?>");
 	 	/* message = new Messaging.Message("haaay");
 	 	 message.destinationName = "/testmqtt";
 	 	 client.send(message);*/
 	 	};
-	 	function onConnectionLost(responseObject) {
-	 	 if (responseObject.errorCode !== 0)
-	 	   console.log("onConnectionLost:"+responseObject.errorMessage);
-	 	};
-		var testing;
-		var ECG_data = [];
-		var ECG_idx = 0;
-
-		function onMessageArrived(message) {
-			testing = message.payloadString;
-			ECG_data.push('-0.'+testing);
-			console.log(ECG_data);
-			//console.log(ECG_data);
-	 	};
 
 
-		//console.log(ECG_data);
-
-	 	function getECG(){
-		 	if (ECG_idx++ >= ECG_data.length - 1) ECG_idx=0;
-		 		var output = new Array();
-		 		output[0] = ECG_data[ECG_idx];
-			return output;
-	 	 }
-	 var ecg;
-	 ecg = new PlethGraph("ecg", getECG);
-	 ecg.speed = 1.5;
-	 ecg.scaleFactor = 1;
-
-		 ecg.start();
-
-/*
-		 var ECG_data = [];
-
-			 ECG_data.push(-0.400,-0.405,-0.420,-0.435,-0.425,-0.420,-0.430,-0.435,-0.450,-0.450,-0.435,-0.425,-0.415,-0.425,-0.445,-0.460,-0.455,-0.430,-0.430,-0.430,-0.435,-0.445,-0.440,-0.425,-0.425,-0.440,-0.435,-0.455,-0.445,-0.435,-0.430,-0.430,-0.420,-0.430,-0.425,-0.425,-0.410,-0.405,-0.400,-0.395,-0.385,-0.355,-0.360,-0.340,-0.340,-0.340,-0.330,-0.310,-0.300,-0.290,-0.285,-0.280,-0.250,-0.235,-0.200,-0.190,-0.190,-0.185,-0.165,-0.155,-0.130,-0.120,-0.125,-0.125,-0.115,-0.115,-0.110,-0.105,-0.115,-0.125,-0.140,-0.135,-0.135,-0.160,-0.175,-0.175,-0.165,-0.170,-0.180,-0.175,-0.195,-0.210,-0.200,-0.195,-0.195,-0.205,-0.210,-0.230,-0.225,-0.220,-0.210,-0.220,-0.230,-0.255,-0.230,-0.230,-0.220,-0.225,-0.230,-0.245,-0.245,-0.245,-0.235,-0.240,-0.240,-0.235,-0.245,-0.230,-0.225,-0.225,-0.240,-0.250,-0.230,-0.230,-0.215,-0.240,-0.245,-0.245,-0.225,-0.225,-0.225,-0.225,-0.235,-0.240,-0.230,-0.230,-0.220,-0.225,-0.230,-0.255,-0.240,-0.240,-0.235,-0.235,-0.245,-0.260,-0.240,-0.225,-0.225,-0.230,-0.260,-0.235,-0.240,-0.235,-0.240,-0.240,-0.225,-0.230,-0.230,-0.215,-0.230,-0.230,-0.240,-0.250,-0.235,-0.235,-0.225,-0.225,-0.230,-0.230,-0.210,-0.215,-0.165,-0.160,-0.130,-0.140,-0.140,-0.160,-0.145,-0.130,-0.115,-0.115,-0.090,-0.075,-0.060,-0.060,-0.055,-0.055,-0.040,-0.025,-0.035,-0.055,-0.070,-0.090,-0.095,-0.100,-0.120,-0.160,-0.225,-0.285,-0.300,-0.300,-0.290,-0.290,-0.300,-0.315,-0.335,-0.320,-0.320,-0.305,-0.310,-0.325,-0.305,-0.300,-0.300,-0.305,-0.310,-0.320,-0.315,-0.300,-0.280,-0.280,-0.290,-0.295,-0.295,-0.285,-0.255,-0.270,-0.275,-0.290,-0.275,-0.270,-0.275,-0.265,-0.230,-0.155,-0.015,0.150,0.335,0.520,0.705,0.875,1.035,1.145,1.220,1.235,1.165,1.035,0.935,0.865,0.790,0.690,0.560,0.395,0.265,0.195,0.145,0.060,-0.045,-0.125,-0.180,-0.230,-0.280,-0.330,-0.380,-0.420,-0.420,-0.435,-0.450,-0.465,-0.480,-0.485,-0.475,-0.460,-0.465,-0.475,-0.475,-0.480,-0.465,-0.445,-0.445,-0.445,-0.455,-0.465,-0.460,-0.445,-0.435,-0.455,-0.460,-0.470,-0.460,-0.445,-0.445,-0.435,-0.445,-0.455,-0.460,-0.445,-0.440,-0.445,-0.445,-0.455,-0.465,-0.460,-0.450,-0.450,-0.465,-0.470,-0.450,-0.460,-0.455,-0.460,-0.460,-0.465,-0.465,-0.445,-0.440,-0.440,-0.445,-0.445,-0.445,-0.425,-0.415,-0.410,-0.410,-0.415,-0.380,-0.360,-0.350,-0.330,-0.320,-0.320,-0.300,-0.275,-0.255,-0.245,-0.240,-0.235,-0.230,-0.215,-0.190,-0.175,-0.175,-0.160,-0.145,-0.130,-0.115,-0.120,-0.125,-0.140,-0.130,-0.135,-0.140,-0.140,-0.155,-0.170,-0.170,-0.165,-0.175,-0.185,-0.200,-0.205,-0.205,-0.205,-0.210,-0.220,-0.240,-0.255,-0.250,-0.240,-0.245,-0.245,-0.245,-0.265,-0.255,-0.250,-0.245,-0.250,-0.255,-0.275,-0.265,-0.270,-0.285,-0.265,-0.270,-0.280,-0.275,-0.275,-0.260,-0.270,-0.275,-0.290,-0.270,-0.275,-0.270,-0.275,-0.280,-0.280,-0.285,-0.270,-0.270,-0.265,-0.275,-0.295,-0.270,-0.260,-0.260,-0.265,-0.275,-0.295,-0.280,-0.260,-0.250,-0.265,-0.270,-0.285,-0.285,-0.275,-0.255,-0.265,-0.275,-0.285,-0.290,-0.280,-0.275,-0.270,-0.265,-0.280,-0.270,-0.260,-0.265,-0.260,-0.250,-0.260,-0.265,-0.255,-0.255,-0.235,-0.220,-0.210,-0.175,-0.150,-0.150,-0.170,-0.175,-0.205,-0.195,-0.170,-0.135,-0.115,-0.120,-0.100,-0.100,-0.080,-0.060,-0.060,-0.070,-0.090,-0.095,-0.090,-0.090,-0.105,-0.130,-0.165,-0.200,-0.240,-0.275,-0.315,-0.330,-0.340,-0.335,-0.325,-0.330,-0.325,-0.345,-0.355,-0.330,-0.325,-0.320,-0.325,-0.315,-0.335,-0.325,-0.315,-0.325,-0.320,-0.320,-0.320,-0.310,-0.295,-0.300,-0.300,-0.295,-0.315,-0.300,-0.285,-0.280,-0.290,-0.310,-0.300,-0.255,-0.160,-0.030,0.115,0.290,0.470,0.650,0.810,0.945,1.030,1.105,1.170,1.230,1.160,1.040,0.900,0.780,0.645,0.515,0.375,0.255,0.175,0.100,0.010,-0.080,-0.150,-0.215,-0.275,-0.330,-0.380,-0.420,-0.430,-0.440,-0.465,-0.485,-0.500,-0.525,-0.520,-0.510,-0.500,-0.515,-0.525,-0.525,-0.510,-0.500,-0.490,-0.495,-0.505,-0.500,-0.490,-0.480,-0.490,-0.500,-0.490,-0.490,-0.485,-0.480,-0.490,-0.480,-0.495,-0.495,-0.485,-0.480,-0.480,-0.480,-0.505,-0.510,-0.495,-0.485,-0.485,-0.495,-0.510,-0.520,-0.495,-0.500,-0.485,-0.490,-0.495,-0.500,-0.485,-0.485,-0.490,-0.500,-0.495,-0.480,-0.480,-0.475,-0.475,-0.475,-0.485,-0.460,-0.445,-0.425,-0.430,-0.425,-0.420,-0.395,-0.380,-0.375,-0.365,-0.360,-0.355,-0.335,-0.305,-0.285,-0.275,-0.265,-0.255,-0.240,-0.215,-0.195,-0.180,-0.175,-0.195,-0.180,-0.180,-0.155,-0.155,-0.165,-0.180,-0.180,-0.200,-0.210,-0.220,-0.220,-0.230,-0.225,-0.235,-0.250,-0.260,-0.270,-0.280,-0.270,-0.270,-0.270,-0.280,-0.300,-0.310,-0.305,-0.285,-0.290,-0.300,-0.330,-0.340,-0.330,-0.310,-0.300,-0.310,-0.320,-0.335,-0.330,-0.320,-0.325,-0.330,-0.330,-0.355,-0.345,-0.345,-0.345,-0.335,-0.345,-0.350,-0.345,-0.335,-0.330,-0.335,-0.340,-0.340,-0.335,-0.345,-0.330,-0.340,-0.355,-0.355,-0.345,-0.330,-0.345,-0.335,-0.335,-0.340,-0.345,-0.335,-0.325,-0.330,-0.335,-0.350,-0.340,-0.335,-0.315,-0.310,-0.335,-0.345,-0.340,-0.335,-0.335,-0.335,-0.345,-0.355,-0.340,-0.330,-0.320,-0.325,-0.330,-0.340,-0.335,-0.330,-0.325,-0.325,-0.325,-0.305,-0.285,-0.250,-0.240,-0.240,-0.250,-0.260,-0.240,-0.205,-0.180,-0.175,-0.175,-0.180,-0.160,-0.145,-0.135,-0.130,-0.135,-0.150,-0.160,-0.170,-0.160,-0.165,-0.180,-0.230,-0.270,-0.315,-0.355,-0.365,-0.390,-0.405,-0.395,-0.390,-0.395,-0.390,-0.390,-0.400,-0.390,-0.385,-0.380,-0.375,-0.395,-0.405,-0.390,-0.380,-0.360,-0.365,-0.365,-0.380,-0.370,-0.360,-0.345,-0.345,-0.350,-0.365,-0.350,-0.355,-0.350,-0.355,-0.360,-0.350,-0.285,-0.185,-0.030,0.160,0.330,0.515,0.715,0.900,1.040,1.135,1.175,1.125,1.000,0.875,0.785,0.695,0.630,0.495,0.330,0.180,0.095,0.020,-0.065,-0.170,-0.250,-0.310,-0.345,-0.410,-0.465,-0.510,-0.510,-0.510,-0.515,-0.535,-0.550,-0.565,-0.565,-0.545,-0.540,-0.540,-0.545,-0.560,-0.545,-0.535,-0.505,-0.515,-0.525,-0.530,-0.535,-0.520,-0.515,-0.505,-0.510,-0.515,-0.515,-0.510,-0.515,-0.520,-0.530,-0.530,-0.525,-0.525,-0.520,-0.535,-0.550,-0.550,-0.540,-0.520,-0.510,-0.520,-0.530,-0.535,-0.530,-0.525,-0.525,-0.520,-0.530,-0.535,-0.540,-0.530,-0.520,-0.510,-0.525,-0.530,-0.510,-0.500,-0.480,-0.480,-0.475,-0.465,-0.440,-0.425,-0.405,-0.390,-0.375,-0.380,-0.365,-0.355,-0.340,-0.330,-0.325,-0.305,-0.280,-0.255,-0.235,-0.215,-0.220,-0.230,-0.210,-0.210,-0.195,-0.205,-0.210,-0.215,-0.220,-0.225,-0.225,-0.240,-0.250,-0.250,-0.260,-0.265,-0.255,-0.270,-0.280,-0.285,-0.290,-0.285,-0.295,-0.290,-0.300,-0.310,-0.320,-0.295,-0.285,-0.290,-0.300,-0.320,-0.305,-0.300,-0.310,-0.310,-0.325,-0.325,-0.310,-0.315,-0.305,-0.310,-0.305,-0.315,-0.305,-0.315,-0.305,-0.305,-0.310,-0.315,-0.310,-0.310,-0.305,-0.310,-0.310,-0.310,-0.295,-0.285,-0.295,-0.295,-0.315,-0.325,-0.315,-0.295,-0.290,-0.295,-0.305,-0.315,-0.310,-0.305,-0.295,-0.295,-0.305,-0.325,-0.325,-0.320,-0.315,-0.305,-0.305,-0.320,-0.310,-0.295,-0.295,-0.290,-0.295,-0.305,-0.300,-0.290,-0.290,-0.290,-0.295,-0.320,-0.320,-0.295,-0.270,-0.285,-0.270,-0.270,-0.265,-0.235,-0.220,-0.195,-0.205,-0.215,-0.220,-0.195,-0.180,-0.160,-0.145,-0.140,-0.140,-0.115,-0.100,-0.080,-0.075,-0.095,-0.110,-0.110,-0.110,-0.110,-0.125,-0.125,-0.140,-0.170,-0.225,-0.270,-0.315,-0.345,-0.335,-0.340,-0.340,-0.365,-0.370,-0.375,);
-			 var ECG_idx = 0;
-			 console.log(ECG_data);
-
-			 function getECG(){
-				 if (ECG_idx++ >= ECG_data.length - 1) ECG_idx=0;
-				 var output = new Array();
-				 output[0] = ECG_data[ECG_idx];
-				 return output;
-			 }
-			 var ecg;
-			 ecg = new PlethGraph("ecg", getECG);
-			 ecg.speed = 1.5;
-			 ecg.scaleFactor = 0.8;
-
-				 ecg.start();
-
-*/
 
 	});
 

@@ -4,9 +4,22 @@ session_start();
 
 //ribbon breadcrumbs config
 //array("Display Name" => "URL");
+if(!empty($_SESSION['level'])) {
+if($_SESSION['level']=="pasien") {
 $breadcrumbs = array(
-	"Home" => APP_URL
+	"Home" => APP_URL."/monitoring.php?deviceid=".$_SESSION['deviceid']
 );
+}else if($_SESSION['level']=="dokter") {
+	$breadcrumbs = array(
+		"Home" => APP_URL."/datapasien.php"
+	);
+}else{
+
+	$breadcrumbs = array(
+		"Home" => APP_URL
+	);
+}
+}
 
 /*navigation array config
 
